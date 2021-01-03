@@ -1,0 +1,146 @@
+<html>
+<head>
+<title>Document object model</title>
+</head>
+<body style='background-color:#ffffff;'>
+
+<script>
+//перечисляем типы с типом input, для них создается элемент с типом input (<input type:"button"> </input>)
+const INPUT_TYPES = ["button", "text", "submit"];
+
+let formDescription={
+  type:"form",
+  name:"form1",
+  id:"form1", 
+  action:"https://nlmk.com/",
+  elements:[{
+    type:"fieldset",
+    name:"fieldset1",
+    id:"fieldset1",
+    elements:[
+      {type:"legend", innerHTML:"Пользователь"},
+      {type:"text", name:"fio", id:"fio", divName :"Ф.И.О.", value:"Иванов Иван Иванович"},
+      {type:"select", name:"place", id:"place", divName :"Место рождения", value:"1", elements:[
+        {value:0,innerHTML:"Не выбрано"},
+        {value:1,innerHTML:"Москва"},
+        {value:2,innerHTML:"Липецк"},
+        {value:3,innerHTML:"Воронеж"}
+         ]},
+      {type:"button", name:"save", id:"save", value:"Сохранить"}
+    ]
+    }
+  ]
+  };
+
+  class formMaker{
+
+  	arrOfPart = [];
+  	mainParent = document.body;
+  	constructor(values){
+  		this.formContain = values;
+  		this.makeForm(this.formContain, this.mainParent);
+  	}
+
+
+  	makeForm(values, parent){
+  		
+  		 let partOfForm = this.makePart(values.type);
+  		 if (values.type == 'select'){
+  		 	//добавляем в массив, чтобы было легко получить родительский элемент для options
+  		 	this.arrOfPart.push(partOfForm);
+  		 }
+  		
+  	  	for(let value in values){
+  	  	//если поле объекта - elements, то в нем содержится информация о дочерних элементах, необходимо рекурсивно вызывать makeForm 
+  	  		if (value == 'elements'){
+  	  			//поле elements представляет собой массив с дочерними элементами, для каждого элемента надо вызвать метод создания элемента
+  	  			//в первоначальном объекте берем контейнер elements и для каждого объекта в нем создаем html элемент
+  	  			for (let i = 0; i < values.elements.length; i++){
+  	  				//для создания объекта необходимо передать информацию о создаваемом объекте и о его предке
+  	  				this.makeForm(values[value][i], partOfForm);
+  	  			}
+  	  		}
+  	  		//если поле объекта - innerHTML, нужно установить свойство innerHTML у элемента
+  	  		else if (value == 'innerHTML'){
+  	  			partOfForm.innerHTML = values[value];
+  	  		} else if (value == 'divName'){
+  	  			let part = document.createElement('div');
+  	  			part.innerHTML = partOfForm.innerHTML + values[value];
+  	  			parent.appendChild(part);
+  	  		}
+  	  		// оставшиеся параметры устанавливаем как атрибуты
+  	  		else if (value != 'innerHTML' && value != 'divName') {
+  	  			partOfForm.setAttribute( value, values[value]);
+  	  		}
+  	  	}
+  	  	//если тип определен (не является options), то добавляем как детей
+  	  	if (values.type){
+  	  		parent.appendChild(partOfForm);
+  	  		
+  	  	}
+  	}
+
+  	makePart(type){
+  		if (INPUT_TYPES.includes(type)) {
+  		//создается элемент с типом input и указанным атрибутом из объекта (например, <input type:"button"></input>)
+	      let part = document.createElement('input');
+	      return part;
+    	} 
+    	else if (!type){
+    		let part = document.createElement('option');
+    		//из массива последний добавленный элемент является родителем
+    		this.arrOfPart[this.arrOfPart.length-1].appendChild(part);
+    		return part;
+    	}
+	    else {
+	    //создается элемент с типом из объекта (например, <legend></legend>)
+	    	let part = document.createElement(type);
+			return part;
+	    }
+  	}
+
+  	//для установки значения в форму выбора, зная id формы, id выбора (select), innerHTML опций
+  	selectOption(formId, elem, opt){
+  		//перебираем все опции выбора согласно id формы и id select
+  		for (let i = 0; i < document.forms[formId].elements[elem].options.length; i++){
+  			//если innerHTML равен указанному в запросе значению, то меняем value селекта
+  			if (document.forms[formId].elements[elem].options[i].innerHTML == opt){
+  				document.forms[formId].elements[elem].value = document.forms[formId].elements[elem].options[i].value +'';
+  				break;
+  			}
+  		}
+  	}
+
+
+  	getValuesOfOptions(formId){
+  		let values = [];
+  		//перебираем все элементы формы, согласно id
+  		for(let i = 0; i < document.forms[formId].elements.length; i++){
+  			//если ввод текста или выбор - надо записать в объект имя свойства и его значение
+  			if(document.forms[formId].elements[i].type == 'text' || document.forms[formId].elements[i].type.startsWith('select')){
+  				let obj = {};
+  				//имя свойства совпадает с id
+  				obj.name = document.forms[formId].elements[i].id;
+  				let val = document.forms[formId].elements[i].value;
+  				//для текста сразу записываем значение, для селекта записываем innerHTML по значению
+  				if (document.forms[formId].elements[i].type.startsWith('select')){
+  					obj.value = document.forms[formId].elements[i].options[val].innerHTML;
+  				} else if (document.forms[formId].elements[i].type == 'text'){
+  					obj.value = val;
+  				}
+  				values.push(obj);
+  			}
+  		}
+  		console.log(values);
+  		return values;
+  	}
+
+
+  }
+
+let test = new formMaker(formDescription);
+test.selectOption('form1','place', 'Воронеж');
+test.getValuesOfOptions('form1');
+</script>
+</body>
+</html>
